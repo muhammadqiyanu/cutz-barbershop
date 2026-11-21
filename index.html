@@ -1,0 +1,2052 @@
+<!DOCTYPE html>
+<html lang="id" class="dark scroll-smooth">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CUTZ — Barbershop Management System</title>
+  
+  <!-- Google Fonts: Oswald (Bold Display) & Plus Jakarta Sans (Modern UI) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Tailwind Configuration -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            display: ['"Oswald"', 'sans-serif'],
+          },
+          colors: {
+            obsidian: '#09090B',
+            charcoal: '#121216',
+            surface: '#18181D',
+            gold: {
+              300: '#FDE047',
+              400: '#FACC15',
+              500: '#D4AF37',
+              600: '#B59020',
+            }
+          },
+          animation: {
+            'fade-in': 'fadeIn 0.35s ease-out forwards',
+            'slide-up': 'slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' },
+            },
+            slideUp: {
+              '0%': { opacity: '0', transform: 'translateY(16px)' },
+              '100%': { opacity: '1', transform: 'translateY(0)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-obsidian text-zinc-100 font-sans antialiased selection:bg-amber-500 selection:text-black overflow-x-hidden">
+
+  <!-- ===================================================================== -->
+  <!-- TOAST NOTIFICATION CONTAINER                                          -->
+  <!-- ===================================================================== -->
+  <div id="toast-container" class="fixed top-5 right-5 z-[100] flex flex-col gap-3 max-w-sm w-[calc(100%-2.5rem)] pointer-events-none"></div>
+
+  <!-- ===================================================================== -->
+  <!-- CUSTOM CONFIRMATION & EDIT MODALS (NO NATIVE ALERT/CONFIRM)           -->
+  <!-- ===================================================================== -->
+  <!-- Generic Confirmation Modal -->
+  <div id="confirm-modal" class="fixed inset-0 z-[90] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+    <div class="bg-charcoal border border-zinc-800 rounded-2xl max-w-md w-full p-6 shadow-2xl shadow-black">
+      <div class="flex items-center gap-3 mb-4">
+        <div id="confirm-icon-wrap" class="w-11 h-11 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </div>
+        <div>
+          <h3 id="confirm-title" class="text-lg font-extrabold text-white">Konfirmasi Tindakan</h3>
+          <p id="confirm-subtitle" class="text-xs text-zinc-400">Pastikan tindakan Anda sudah benar</p>
+        </div>
+      </div>
+      <p id="confirm-message" class="text-sm text-zinc-300 leading-relaxed mb-6">Apakah Anda yakin ingin melanjutkan tindakan ini?</p>
+      <div class="flex items-center justify-end gap-3">
+        <button id="confirm-cancel-btn" class="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-sm font-bold transition">Batal</button>
+        <button id="confirm-ok-btn" class="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-bold shadow-lg shadow-red-600/20 transition">Ya, Lanjutkan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Booking Success Ticket Modal -->
+  <div id="booking-success-modal" class="fixed inset-0 z-[90] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+    <div class="bg-charcoal border border-amber-500/40 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl shadow-amber-500/10 relative overflow-hidden">
+      <div class="absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-600"></div>
+      <div class="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto mb-4">
+        <svg class="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <h3 class="font-display text-2xl sm:text-3xl font-bold text-center text-white uppercase tracking-wide">Booking Berhasil!</h3>
+      <p class="text-center text-zinc-400 text-sm mt-1 mb-6">Jadwal potong rambut Anda telah tercatat di sistem CUTZ.</p>
+      
+      <div id="booking-ticket-details" class="bg-obsidian/90 border border-zinc-800 rounded-2xl p-4 space-y-2.5 text-sm mb-6">
+        <!-- Populated dynamically -->
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button onclick="closeBookingSuccessModal(true)" class="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-extrabold text-sm transition shadow-lg shadow-amber-500/20">
+          Cek Status Booking
+        </button>
+        <button onclick="closeBookingSuccessModal(false)" class="py-3 px-5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-sm transition">
+          Tutup
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Service Modal (Admin) -->
+  <div id="edit-service-modal" class="fixed inset-0 z-[90] hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+    <div class="bg-charcoal border border-zinc-800 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-lg font-extrabold text-white flex items-center gap-2">
+          <span class="w-2 h-6 bg-amber-500 rounded-full"></span>
+          Edit Layanan & Harga
+        </h3>
+        <button onclick="closeEditServiceModal()" class="p-2 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="edit-service-form" class="space-y-4">
+        <input type="hidden" id="edit-service-id" />
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1.5">Nama Paket Layanan</label>
+          <input type="text" id="edit-service-name" required class="w-full px-4 py-3 rounded-xl bg-obsidian border border-zinc-800 focus:border-amber-500 focus:outline-none text-white font-semibold text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1.5">Harga (Rp)</label>
+          <input type="number" id="edit-service-price" min="1000" step="500" required class="w-full px-4 py-3 rounded-xl bg-obsidian border border-zinc-800 focus:border-amber-500 focus:outline-none text-white font-semibold text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-zinc-400 mb-1.5">Deskripsi Singkat</label>
+          <input type="text" id="edit-service-desc" required class="w-full px-4 py-3 rounded-xl bg-obsidian border border-zinc-800 focus:border-amber-500 focus:outline-none text-white text-sm" />
+        </div>
+        <div class="flex items-center gap-2.5 pt-1">
+          <input type="checkbox" id="edit-service-popular" class="w-4 h-4 accent-amber-500 rounded cursor-pointer" />
+          <label for="edit-service-popular" class="text-sm font-semibold text-zinc-300 cursor-pointer">Tandai sebagai Paket Favorit / Sultan</label>
+        </div>
+        <div class="flex justify-end gap-3 pt-4 border-t border-zinc-800">
+          <button type="button" onclick="closeEditServiceModal()" class="px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-sm transition">Batal</button>
+          <button type="submit" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-extrabold text-sm transition">Simpan Perubahan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================== -->
+  <!-- SISI 1: HALAMAN PENGGUNA (CUSTOMER VIEW)                              -->
+  <!-- ===================================================================== -->
+  <div id="customer-view" class="min-h-screen flex flex-col">
+    
+    <!-- Sticky Header -->
+    <header class="sticky top-0 z-50 bg-obsidian/90 backdrop-blur-xl border-b border-zinc-800/80">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-20">
+          <!-- Brand Logo -->
+          <a href="#home" onclick="navigateCustomerSection('home')" class="flex items-center gap-3 group">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 via-amber-500 to-yellow-600 flex items-center justify-center text-black shadow-lg shadow-amber-500/20 group-hover:scale-105 transition">
+              <!-- Barber Scissor & Comb SVG -->
+              <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+                <line x1="20" y1="4" x2="8.12" y2="15.88"/>
+                <line x1="14.47" y1="14.48" x2="20" y2="20"/>
+                <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+              </svg>
+            </div>
+            <div>
+              <span class="font-display text-2xl sm:text-3xl font-bold tracking-wider text-white block leading-none">CUTZ</span>
+              <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-400 block mt-0.5">Premium Barbershop</span>
+            </div>
+          </a>
+
+          <!-- Desktop Nav Menu -->
+          <nav class="hidden md:flex items-center gap-8">
+            <a href="#home" class="text-sm font-bold text-zinc-300 hover:text-amber-400 transition">Home</a>
+            <a href="#harga" class="text-sm font-bold text-zinc-300 hover:text-amber-400 transition">Harga</a>
+            <a href="#booking" class="text-sm font-bold text-zinc-300 hover:text-amber-400 transition">Booking</a>
+            <a href="#cek-booking" class="text-sm font-bold text-zinc-300 hover:text-amber-400 transition">Cek Booking</a>
+            <a href="#galeri" class="text-sm font-bold text-zinc-300 hover:text-amber-400 transition">Galeri & Review</a>
+          </nav>
+
+          <!-- Action Buttons -->
+          <div class="flex items-center gap-3">
+            <button onclick="openAdminPortal()" class="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-amber-500/40 hover:border-amber-400 text-amber-400 text-xs sm:text-sm font-extrabold tracking-wide transition flex items-center gap-2 shadow-sm">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+              <span>Login Admin</span>
+            </button>
+
+            <!-- Mobile Hamburger Button -->
+            <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="md:hidden p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-amber-400 transition" aria-label="Buka Menu">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mobile Dropdown Navigation -->
+      <div id="mobile-menu" class="hidden md:hidden bg-charcoal border-t border-zinc-800 px-4 pt-3 pb-5 space-y-2 animate-fade-in">
+        <a href="#home" onclick="toggleMobileMenu()" class="block px-4 py-3 rounded-xl text-sm font-bold text-zinc-200 hover:bg-zinc-800 hover:text-amber-400 transition">Home</a>
+        <a href="#harga" onclick="toggleMobileMenu()" class="block px-4 py-3 rounded-xl text-sm font-bold text-zinc-200 hover:bg-zinc-800 hover:text-amber-400 transition">Harga & Paket</a>
+        <a href="#booking" onclick="toggleMobileMenu()" class="block px-4 py-3 rounded-xl text-sm font-bold text-zinc-200 hover:bg-zinc-800 hover:text-amber-400 transition">Booking Online</a>
+        <a href="#cek-booking" onclick="toggleMobileMenu()" class="block px-4 py-3 rounded-xl text-sm font-bold text-zinc-200 hover:bg-zinc-800 hover:text-amber-400 transition">Cek Booking</a>
+        <a href="#galeri" onclick="toggleMobileMenu()" class="block px-4 py-3 rounded-xl text-sm font-bold text-zinc-200 hover:bg-zinc-800 hover:text-amber-400 transition">Galeri & Testimoni</a>
+      </div>
+    </header>
+
+    <!-- Main Customer Content -->
+    <main class="flex-1">
+      
+      <!-- 1. HERO SECTION -->
+      <section id="home" class="relative overflow-hidden py-16 sm:py-24 lg:py-28 border-b border-zinc-800/80">
+        <!-- Ambient Gold Glow -->
+        <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-amber-500/10 blur-[130px] rounded-full pointer-events-none"></div>
+        
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div class="grid lg:grid-cols-12 gap-12 items-center">
+            <!-- Hero Left Copy -->
+            <div class="lg:col-span-7 text-center lg:text-left">
+              <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-extrabold uppercase tracking-widest mb-6">
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                <span>Potong, Booking, Kelola, Semua Dalam Satu Aplikasi</span>
+              </div>
+
+              <h1 class="font-display text-5xl sm:text-6xl lg:text-7xl font-bold uppercase tracking-tight leading-[1.03] text-white mb-6">
+                GANTENG <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-600">MAKSIMAL,</span><br />
+                HARGA <span class="underline decoration-amber-500 decoration-4 underline-offset-8">BERSAHABAT</span>
+              </h1>
+
+              <p class="text-zinc-400 text-base sm:text-lg max-w-2xl mx-auto lg:mx-0 leading-relaxed mb-8 font-medium">
+                Tinggalkan antrean panjang. Pilih kapster terbaik, tentukan gaya rambut andalanmu, dan booking jadwal cukur dalam hitungan detik di <strong class="text-white">CUTZ Barbershop</strong>.
+              </p>
+
+              <div class="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+                <a href="#booking" class="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-black font-extrabold text-base uppercase tracking-wider shadow-xl shadow-amber-500/25 hover:scale-[1.02] active:scale-[0.99] transition flex items-center justify-center gap-2.5">
+                  <span>Booking Sekarang</span>
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+                </a>
+                <a href="#harga" class="w-full sm:w-auto px-7 py-4 rounded-2xl bg-charcoal hover:bg-zinc-800 border border-zinc-700 text-white font-bold text-base transition flex items-center justify-center gap-2">
+                  <span>Lihat Daftar Paket</span>
+                </a>
+              </div>
+
+              <!-- Quick Trust Stats -->
+              <div class="grid grid-cols-3 gap-4 max-w-md mx-auto lg:mx-0 mt-10 pt-8 border-t border-zinc-800/80">
+                <div>
+                  <p class="font-display text-2xl sm:text-3xl font-bold text-amber-400">4.9★</p>
+                  <p class="text-xs text-zinc-400 font-semibold mt-0.5">Rating Pelanggan</p>
+                </div>
+                <div>
+                  <p class="font-display text-2xl sm:text-3xl font-bold text-white">09–21</p>
+                  <p class="text-xs text-zinc-400 font-semibold mt-0.5">Buka Setiap Hari</p>
+                </div>
+                <div>
+                  <p class="font-display text-2xl sm:text-3xl font-bold text-amber-400">25K+</p>
+                  <p class="text-xs text-zinc-400 font-semibold mt-0.5">Mulai Dari Rp 25rb</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Hero Right Premium Card Visual -->
+            <div class="lg:col-span-5">
+              <div class="relative rounded-3xl bg-gradient-to-b from-zinc-800/60 to-charcoal p-1.5 border border-amber-500/30 shadow-2xl shadow-black">
+                <div class="rounded-[22px] bg-obsidian overflow-hidden relative">
+                  <!-- Barbershop Hero Visual with SVG Fallback -->
+                  <img 
+                    src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=900&q=80" 
+                    alt="CUTZ Premium Barbershop Experience" 
+                    onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');"
+                    class="w-full h-[360px] sm:h-[420px] object-cover opacity-80"
+                  />
+                  <!-- Fallback Art if Offline -->
+                  <div class="hidden w-full h-[360px] sm:h-[420px] bg-gradient-to-br from-zinc-900 via-obsidian to-amber-950/40 flex flex-col items-center justify-center p-8 text-center">
+                    <div class="w-24 h-24 rounded-full bg-amber-500/15 border-2 border-amber-400 flex items-center justify-center text-amber-400 mb-4">
+                      <svg class="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+                    </div>
+                    <p class="font-display text-3xl font-bold text-white uppercase tracking-wider">CUTZ STUDIO</p>
+                    <p class="text-amber-400 text-sm font-bold mt-1">Precision Cuts & Grooming</p>
+                  </div>
+
+                  <!-- Overlay Gradient & Badge -->
+                  <div class="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/40 to-transparent"></div>
+                  <div class="absolute bottom-5 left-5 right-5 bg-charcoal/90 backdrop-blur-md border border-zinc-700/80 rounded-2xl p-4 flex items-center justify-between">
+                    <div>
+                      <span class="text-[11px] font-extrabold uppercase tracking-wider text-amber-400">Paket Terlaris</span>
+                      <p class="text-white font-extrabold text-base">Paket Sultan Complete</p>
+                      <p class="text-zinc-400 text-xs">Haircut + Wash + Massage + Tonic</p>
+                    </div>
+                    <div class="text-right">
+                      <span class="font-display text-2xl font-bold text-amber-400">Rp 60K</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. DAFTAR LAYANAN & HARGA (DYNAMICALLY SYNCED WITH ADMIN) -->
+      <section id="harga" class="py-16 sm:py-24 bg-charcoal/40 border-b border-zinc-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="text-center max-w-2xl mx-auto mb-12 sm:mb-16">
+            <span class="text-xs font-extrabold uppercase tracking-[0.25em] text-amber-400">Menu Perawatan Pria</span>
+            <h2 class="font-display text-3xl sm:text-5xl font-bold uppercase text-white mt-2">Daftar Paket & Harga</h2>
+            <p class="text-zinc-400 text-sm sm:text-base mt-3">Pilih paket terbaik sesuai kebutuhan gaya rambut Anda. Klik tombol <strong class="text-amber-400">Pilih Paket</strong> untuk langsung mengisi form booking.</p>
+          </div>
+
+          <!-- Services Grid Rendered by JS -->
+          <div id="customer-services-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Dynamic Service Cards -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. FORM BOOKING & 4. CEK BOOKING SECTION -->
+      <section id="booking" class="py-16 sm:py-24 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="grid lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+            
+            <!-- LEFT: FORM BOOKING (7 Columns) -->
+            <div class="lg:col-span-7 bg-charcoal border border-zinc-800 rounded-3xl p-6 sm:p-8 lg:p-10 shadow-2xl">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="w-3 h-8 rounded-full bg-gradient-to-b from-amber-400 to-amber-600"></span>
+                <h2 class="font-display text-3xl sm:text-4xl font-bold uppercase text-white">Form Booking Online</h2>
+              </div>
+              <p class="text-zinc-400 text-sm mb-8">Isi data di bawah ini untuk mengamankan kursi cukur tanpa antre.</p>
+
+              <form id="customer-booking-form" class="space-y-5">
+                <div class="grid sm:grid-cols-2 gap-5">
+                  <!-- Input Nama -->
+                  <div>
+                    <label for="book-name" class="block text-xs font-extrabold uppercase tracking-wider text-zinc-300 mb-2">Nama Lengkap *</label>
+                    <input type="text" id="book-name" required placeholder="Contoh: Rizky Pratama" class="w-full px-4 py-3.5 rounded-xl bg-obsidian border border-zinc-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none text-white placeholder-zinc-600 font-semibold text-sm transition" />
+                  </div>
+
+                  <!-- Input Nomor WA -->
+                  <div>
+                    <label for="book-wa" class="block text-xs font-extrabold uppercase tracking-wider text-zinc-300 mb-2">Nomor WhatsApp *</label>
+                    <input type="tel" id="book-wa" required placeholder="Contoh: 081234567890" class="w-full px-4 py-3.5 rounded-xl bg-obsidian border border-zinc-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none text-white placeholder-zinc-600 font-semibold text-sm transition" />
+                  </div>
+                </div>
+
+                <!-- Pilih Paket -->
+                <div>
+                  <label for="book-package" class="block text-xs font-extrabold uppercase tracking-wider text-zinc-300 mb-2">Pilih Paket Layanan *</label>
+                  <select id="book-package" required class="w-full px-4 py-3.5 rounded-xl bg-obsidian border border-zinc-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none text-white font-bold text-sm transition cursor-pointer">
+                    <!-- Populated dynamically from localStorage services -->
+                  </select>
+                </div>
+
+                <div class="grid sm:grid-cols-2 gap-5">
+                  <!-- Pilih Tanggal -->
+                  <div>
+                    <label for="book-date" class="block text-xs font-extrabold uppercase tracking-wider text-zinc-300 mb-2">Pilih Tanggal *</label>
+                    <input type="date" id="book-date" required class="w-full px-4 py-3.5 rounded-xl bg-obsidian border border-zinc-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none text-white font-semibold text-sm transition [color-scheme:dark]" />
+                  </div>
+
+                  <!-- Pilih Jam 09.00 - 21.00 -->
+                  <div>
+                    <label for="book-time" class="block text-xs font-extrabold uppercase tracking-wider text-zinc-300 mb-2">Pilih Jam (09.00 - 21.00) *</label>
+                    <select id="book-time" required class="w-full px-4 py-3.5 rounded-xl bg-obsidian border border-zinc-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 focus:outline-none text-white font-bold text-sm transition cursor-pointer">
+                      <option value="09:00">09:00 WIB</option>
+                      <option value="10:00">10:00 WIB</option>
+                      <option value="11:00">11:00 WIB</option>
+                      <option value="12:00">12:00 WIB</option>
+                      <option value="13:00">13:00 WIB</option>
+                      <option value="14:00">14:00 WIB</option>
+                      <option value="15:00">15:00 WIB</option>
+                      <option value="16:00">16:00 WIB</option>
+                      <option value="17:00">17:00 WIB</option>
+                      <option value="18:00">18:00 WIB</option>
+                      <option value="19:00">19:00 WIB</option>
+                      <option value="20:00">20:00 WIB</option>
+                      <option value="21:00">21:00 WIB</option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Summary Bar -->
+                <div class="p-4 rounded-2xl bg-obsidian border border-amber-500/20 flex items-center justify-between">
+                  <span class="text-xs font-bold uppercase tracking-wider text-zinc-400">Estimasi Total Bayar</span>
+                  <span id="book-price-preview" class="font-display text-2xl font-bold text-amber-400">Rp 25.000</span>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-black font-extrabold text-base uppercase tracking-wider shadow-xl shadow-amber-500/20 hover:scale-[1.01] active:scale-[0.99] transition flex items-center justify-center gap-2">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <span>Booking Sekarang</span>
+                </button>
+              </form>
+            </div>
+
+            <!-- RIGHT: CEK STATUS BOOKING (5 Columns) -->
+            <div id="cek-booking" class="lg:col-span-5 bg-charcoal border border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </div>
+                <div>
+                  <h2 class="font-display text-2xl sm:text-3xl font-bold uppercase text-white">Cek Booking</h2>
+                  <p class="text-xs text-zinc-400">Lacak status antrean dengan Nomor WA</p>
+                </div>
+              </div>
+
+              <form id="check-booking-form" class="mt-6 space-y-3">
+                <div>
+                  <label for="check-wa-input" class="block text-xs font-extrabold uppercase tracking-wider text-zinc-300 mb-2">Masukkan Nomor WhatsApp</label>
+                  <div class="flex gap-2">
+                    <input type="tel" id="check-wa-input" required placeholder="081234567890" class="flex-1 px-4 py-3.5 rounded-xl bg-obsidian border border-zinc-800 focus:border-amber-500 focus:outline-none text-white placeholder-zinc-600 font-semibold text-sm" />
+                    <button type="submit" class="px-5 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-sm transition shrink-0">
+                      Cek Status
+                    </button>
+                  </div>
+                </div>
+              </form>
+
+              <!-- Status Legend -->
+              <div class="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-zinc-800/80 text-[11px] font-bold">
+                <span class="text-zinc-500">Status:</span>
+                <span class="px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">Menunggu</span>
+                <span class="px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30">Dikonfirmasi</span>
+                <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Selesai</span>
+              </div>
+
+              <!-- Search Results Container -->
+              <div id="check-booking-results" class="mt-5 space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                <div class="text-center py-8 px-4 rounded-2xl bg-obsidian/60 border border-dashed border-zinc-800">
+                  <p class="text-zinc-400 text-sm font-medium">Masukkan nomor WA yang Anda gunakan saat booking untuk melihat status terkini.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- 5. GALERI 6 GAYA RAMBUT & TESTIMONI -->
+      <section id="galeri" class="py-16 sm:py-24 bg-charcoal/40 border-t border-zinc-800/80">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          
+          <!-- Galeri Header -->
+          <div class="text-center max-w-2xl mx-auto mb-12">
+            <span class="text-xs font-extrabold uppercase tracking-[0.25em] text-amber-400">Inspirasi Potongan</span>
+            <h2 class="font-display text-3xl sm:text-5xl font-bold uppercase text-white mt-2">Galeri 6 Gaya Rambut Populer</h2>
+            <p class="text-zinc-400 text-sm sm:text-base mt-3">Tunjukkan gaya favoritmu ke kapster CUTZ atau klik langsung untuk booking.</p>
+          </div>
+
+          <!-- 6 Hairstyles Grid -->
+          <div id="hairstyle-gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-20">
+            <!-- Populated by JS with 6 iconic hairstyles + safe fallbacks -->
+          </div>
+
+          <!-- Testimoni Pelanggan -->
+          <div class="border-t border-zinc-800/80 pt-16">
+            <div class="text-center max-w-xl mx-auto mb-12">
+              <span class="text-xs font-extrabold uppercase tracking-[0.25em] text-amber-400">Kata Mereka</span>
+              <h3 class="font-display text-3xl sm:text-4xl font-bold uppercase text-white mt-2">Testimoni Pelanggan CUTZ</h3>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <!-- Review 1 -->
+              <div class="bg-charcoal border border-zinc-800 hover:border-amber-500/40 rounded-3xl p-6 transition">
+                <div class="flex items-center gap-1 text-amber-400 mb-4">
+                  <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+                </div>
+                <p class="text-zinc-300 text-sm leading-relaxed mb-6">"Booking lewat web CUTZ gampang banget, datang tinggal duduk langsung dicukur. Hasil Two Block Fade-nya rapi parah, sesuai bentuk kepala!"</p>
+                <div class="flex items-center gap-3 pt-4 border-t border-zinc-800/80">
+                  <div class="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center font-extrabold text-amber-400 text-sm">AD</div>
+                  <div>
+                    <p class="text-white font-bold text-sm">Aditya Nugroho</p>
+                    <p class="text-zinc-500 text-xs">Pelanggan Paket Sultan</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Review 2 -->
+              <div class="bg-charcoal border border-zinc-800 hover:border-amber-500/40 rounded-3xl p-6 transition">
+                <div class="flex items-center gap-1 text-amber-400 mb-4">
+                  <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+                </div>
+                <p class="text-zinc-300 text-sm leading-relaxed mb-6">"Harga 25 ribu tapi pelayanan serasa barbershop bintang lima. Tempatnya bersih, musik enak, kapsternya ramah dan detail banget."</p>
+                <div class="flex items-center gap-3 pt-4 border-t border-zinc-800/80">
+                  <div class="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center font-extrabold text-amber-400 text-sm">RF</div>
+                  <div>
+                    <p class="text-white font-bold text-sm">Raka Febriansyah</p>
+                    <p class="text-zinc-500 text-xs">Mahasiswa</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Review 3 -->
+              <div class="bg-charcoal border border-zinc-800 hover:border-amber-500/40 rounded-3xl p-6 transition">
+                <div class="flex items-center gap-1 text-amber-400 mb-4">
+                  <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+                </div>
+                <p class="text-zinc-300 text-sm leading-relaxed mb-6">"Sering ambil Potong + Cukur Jenggot sebelum ketemu klien. Cukup cek status booking dari HP, nggak pernah buang waktu nunggu lama."</p>
+                <div class="flex items-center gap-3 pt-4 border-t border-zinc-800/80">
+                  <div class="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center font-extrabold text-amber-400 text-sm">BS</div>
+                  <div>
+                    <p class="text-white font-bold text-sm">Bima Sakti</p>
+                    <p class="text-zinc-500 text-xs">Karyawan Swasta</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-obsidian border-t border-zinc-800 py-10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-lg bg-amber-500 flex items-center justify-center text-black font-display font-bold text-xl">C</div>
+          <div>
+            <p class="font-display text-lg font-bold text-white tracking-wider">CUTZ BARBERSHOP</p>
+            <p class="text-xs text-zinc-500">Potong, Booking, Kelola, Semua Dalam Satu Aplikasi</p>
+          </div>
+        </div>
+        <p class="text-xs text-zinc-500 text-center sm:text-right">
+          Buka Setiap Hari: <span class="text-zinc-300 font-semibold">09.00 – 21.00 WIB</span> &bull; &copy; 2026 CUTZ Barbershop.
+        </p>
+      </div>
+    </footer>
+  </div>
+
+
+  <!-- ===================================================================== -->
+  <!-- SISI 2A: HALAMAN LOGIN ADMIN                                          -->
+  <!-- ===================================================================== -->
+  <div id="admin-login-view" class="hidden min-h-screen bg-obsidian flex items-center justify-center p-4 relative overflow-hidden">
+    <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[300px] bg-amber-500/10 blur-[120px] rounded-full pointer-events-none"></div>
+
+    <div class="max-w-md w-full bg-charcoal border border-zinc-800 rounded-3xl p-8 shadow-2xl relative z-10 animate-slide-up">
+      <button onclick="backToCustomerView()" class="inline-flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-amber-400 transition mb-6">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        <span>Kembali ke Halaman Pengguna</span>
+      </button>
+
+      <div class="flex items-center gap-3 mb-6">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-black shadow-lg shadow-amber-500/20">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+        </div>
+        <div>
+          <h1 class="font-display text-2xl sm:text-3xl font-bold uppercase text-white tracking-wide">Admin Login</h1>
+          <p class="text-xs text-zinc-400">CUTZ Barbershop Management System</p>
+        </div>
+      </div>
+
+      <form id="admin-login-form" class="space-y-4">
+        <div>
+          <label for="admin-username" class="block text-xs font-extrabold uppercase tracking-wider text-zinc-400 mb-1.5">Username</label>
+          <input type="text" id="admin-username" required autocomplete="username" placeholder="Masukkan username" class="w-full px-4 py-3.5 rounded-xl bg-obsidian border border-zinc-800 focus:border-amber-500 focus:outline-none text-white font-semibold text-sm" />
+        </div>
+
+        <div>
+          <label for="admin-password" class="block text-xs font-extrabold uppercase tracking-wider text-zinc-400 mb-1.5">Password</label>
+          <div class="relative">
+            <input type="password" id="admin-password" required autocomplete="current-password" placeholder="Masukkan password" class="w-full px-4 py-3.5 rounded-xl bg-obsidian border border-zinc-800 focus:border-amber-500 focus:outline-none text-white font-semibold text-sm pr-12" />
+            <button type="button" onclick="toggleAdminPasswordVisibility()" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-amber-400 text-xs font-bold">
+              Lihat
+            </button>
+          </div>
+        </div>
+
+        <div id="admin-login-error" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold">
+          Username atau password salah! Gunakan admin / admin123.
+        </div>
+
+        <button type="submit" class="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-extrabold text-sm uppercase tracking-wider shadow-lg shadow-amber-500/20 transition mt-2">
+          Masuk ke Dashboard
+        </button>
+      </form>
+
+      <div class="mt-6 pt-5 border-t border-zinc-800/80 flex items-center justify-between text-xs text-zinc-500">
+        <span>Demo Kredensial: <strong class="text-zinc-300">admin</strong> / <strong class="text-zinc-300">admin123</strong></span>
+        <button type="button" onclick="fillDemoAdmin()" class="text-amber-400 hover:underline font-bold">Isi Otomatis</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================================================================== -->
+  <!-- SISI 2B: HALAMAN DASHBOARD ADMIN                                      -->
+  <!-- ===================================================================== -->
+  <div id="admin-dashboard-view" class="hidden min-h-screen bg-obsidian flex flex-col lg:flex-row">
+    
+    <!-- Mobile Admin Top Header -->
+    <div class="lg:hidden sticky top-0 z-40 bg-charcoal border-b border-zinc-800 px-4 py-3.5 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl bg-amber-500 flex items-center justify-center text-black font-display font-bold text-xl">C</div>
+        <div>
+          <span class="font-display text-xl font-bold text-white tracking-wider block leading-none">CUTZ ADMIN</span>
+          <span class="text-[10px] text-amber-400 font-bold uppercase">Panel Kelola</span>
+        </div>
+      </div>
+      <button onclick="toggleAdminSidebar()" class="p-2.5 rounded-xl bg-obsidian border border-zinc-800 text-zinc-200 hover:text-amber-400">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+    </div>
+
+    <!-- Mobile Backdrop for Sidebar -->
+    <div id="admin-sidebar-backdrop" onclick="toggleAdminSidebar()" class="fixed inset-0 z-40 bg-black/70 hidden lg:hidden"></div>
+
+    <!-- Left Sidebar Menu (Dashboard, Booking, Layanan, Laporan + Logout) -->
+    <aside id="admin-sidebar" class="fixed lg:sticky top-0 left-0 z-50 h-screen w-72 bg-charcoal border-r border-zinc-800 flex flex-col justify-between p-5 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 ease-out shrink-0">
+      <div>
+        <!-- Brand -->
+        <div class="flex items-center justify-between pb-6 mb-6 border-b border-zinc-800">
+          <div class="flex items-center gap-3">
+            <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-black font-display font-bold text-2xl shadow-lg shadow-amber-500/20">
+              C
+            </div>
+            <div>
+              <span class="font-display text-2xl font-bold text-white tracking-wider block leading-none">CUTZ</span>
+              <span class="text-[10px] font-extrabold uppercase tracking-[0.2em] text-amber-400 block mt-1">Admin System</span>
+            </div>
+          </div>
+          <button onclick="toggleAdminSidebar()" class="lg:hidden p-2 rounded-lg text-zinc-400 hover:text-white">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <!-- Navigation Menu -->
+        <p class="text-[10px] font-extrabold uppercase tracking-[0.2em] text-zinc-500 px-3 mb-2">Menu Utama</p>
+        <nav class="space-y-1.5">
+          <button onclick="switchAdminTab('dashboard')" data-admin-tab="dashboard" class="admin-nav-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition text-left bg-amber-500 text-black">
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+            <span>Dashboard</span>
+          </button>
+
+          <button onclick="switchAdminTab('booking')" data-admin-tab="booking" class="admin-nav-btn w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-bold transition text-left text-zinc-400 hover:bg-zinc-800/80 hover:text-white">
+            <div class="flex items-center gap-3">
+              <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              <span>Booking</span>
+            </div>
+            <span id="sidebar-pending-badge" class="px-2 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-500/20 text-amber-400">0</span>
+          </button>
+
+          <button onclick="switchAdminTab('layanan')" data-admin-tab="layanan" class="admin-nav-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition text-left text-zinc-400 hover:bg-zinc-800/80 hover:text-white">
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"/></svg>
+            <span>Layanan</span>
+          </button>
+
+          <button onclick="switchAdminTab('laporan')" data-admin-tab="laporan" class="admin-nav-btn w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-bold transition text-left text-zinc-400 hover:bg-zinc-800/80 hover:text-white">
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            <span>Laporan</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Bottom Sidebar Actions -->
+      <div class="pt-4 border-t border-zinc-800 space-y-2">
+        <button onclick="backToCustomerView()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-obsidian hover:bg-zinc-800 border border-zinc-800 text-zinc-300 text-xs font-bold transition">
+          <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          <span>Lihat Halaman Pelanggan</span>
+        </button>
+
+        <button onclick="logoutAdmin()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 text-sm font-extrabold transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          <span>Logout</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Admin Main Content Area -->
+    <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-full overflow-x-hidden">
+      
+      <!-- Top Bar Info -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-zinc-800/80">
+        <div>
+          <h1 id="admin-page-title" class="font-display text-3xl sm:text-4xl font-bold uppercase text-white tracking-wide">Dashboard Ringkasan</h1>
+          <p id="admin-page-subtitle" class="text-xs sm:text-sm text-zinc-400 mt-0.5">Pantau performa, jadwal booking, dan pendapatan CUTZ Barbershop secara real-time.</p>
+        </div>
+        <div class="flex items-center gap-2.5 bg-charcoal border border-zinc-800 px-4 py-2.5 rounded-2xl self-start sm:self-auto">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="admin-current-date" class="text-xs font-bold text-zinc-300">Hari Ini</span>
+        </div>
+      </div>
+
+      <!-- =============================================================== -->
+      <!-- TAB 1: DASHBOARD (4 KPI BOXES + RECENT BOOKINGS)                -->
+      <!-- =============================================================== -->
+      <section id="admin-tab-dashboard" class="admin-tab-panel space-y-8 animate-fade-in">
+        
+        <!-- 4 KPI Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+          <!-- Card 1: Total Booking Hari Ini -->
+          <div class="bg-charcoal border border-zinc-800 hover:border-amber-500/40 rounded-3xl p-6 transition relative overflow-hidden">
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-xs font-extrabold uppercase tracking-wider text-zinc-400">Booking Hari Ini</span>
+              <div class="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              </div>
+            </div>
+            <p id="kpi-today-bookings" class="font-display text-4xl font-bold text-white">0</p>
+            <p class="text-xs text-zinc-500 font-semibold mt-1">Jadwal masuk tanggal hari ini</p>
+          </div>
+
+          <!-- Card 2: Total Pendapatan -->
+          <div class="bg-charcoal border border-amber-500/30 rounded-3xl p-6 transition relative overflow-hidden">
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-xs font-extrabold uppercase tracking-wider text-amber-400">Total Pendapatan</span>
+              <div class="w-10 h-10 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+            </div>
+            <p id="kpi-total-revenue" class="font-display text-3xl sm:text-4xl font-bold text-amber-400">Rp 0</p>
+            <p class="text-xs text-zinc-500 font-semibold mt-1">Dari transaksi berstatus Selesai</p>
+          </div>
+
+          <!-- Card 3: Booking Menunggu -->
+          <div class="bg-charcoal border border-zinc-800 hover:border-amber-500/40 rounded-3xl p-6 transition relative overflow-hidden">
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-xs font-extrabold uppercase tracking-wider text-zinc-400">Booking Menunggu</span>
+              <div class="w-10 h-10 rounded-xl bg-yellow-500/15 text-yellow-400 flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+            </div>
+            <p id="kpi-pending-bookings" class="font-display text-4xl font-bold text-yellow-400">0</p>
+            <p class="text-xs text-zinc-500 font-semibold mt-1">Perlu konfirmasi kapster</p>
+          </div>
+
+          <!-- Card 4: Total Pelanggan -->
+          <div class="bg-charcoal border border-zinc-800 hover:border-amber-500/40 rounded-3xl p-6 transition relative overflow-hidden">
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-xs font-extrabold uppercase tracking-wider text-zinc-400">Total Pelanggan</span>
+              <div class="w-10 h-10 rounded-xl bg-sky-500/15 text-sky-400 flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </div>
+            </div>
+            <p id="kpi-total-customers" class="font-display text-4xl font-bold text-white">0</p>
+            <p class="text-xs text-zinc-500 font-semibold mt-1">Pelanggan unik terdaftar</p>
+          </div>
+        </div>
+
+        <!-- Quick Antrean Terbaru di Dashboard -->
+        <div class="bg-charcoal border border-zinc-800 rounded-3xl p-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+            <div>
+              <h2 class="font-display text-2xl font-bold uppercase text-white">Antrean Booking Terbaru</h2>
+              <p class="text-xs text-zinc-400">Langsung kelola status pelanggan tanpa perlu refresh halaman.</p>
+            </div>
+            <button onclick="switchAdminTab('booking')" class="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-amber-400 text-xs font-extrabold transition self-start sm:self-auto">
+              Lihat Semua Booking →
+            </button>
+          </div>
+
+          <div id="dashboard-recent-bookings" class="overflow-x-auto">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <!-- TAB 2: DAFTAR BOOKING LENGKAP                                   -->
+      <!-- =============================================================== -->
+      <section id="admin-tab-booking" class="admin-tab-panel hidden space-y-6 animate-fade-in">
+        <!-- Filter & Search Bar -->
+        <div class="bg-charcoal border border-zinc-800 rounded-2xl p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+          <div class="flex flex-wrap gap-2">
+            <button onclick="setBookingFilter('Semua')" data-status-filter="Semua" class="booking-filter-btn px-3.5 py-2 rounded-xl text-xs font-extrabold bg-amber-500 text-black transition">Semua</button>
+            <button onclick="setBookingFilter('Menunggu')" data-status-filter="Menunggu" class="booking-filter-btn px-3.5 py-2 rounded-xl text-xs font-extrabold bg-obsidian text-zinc-400 hover:text-white transition">Menunggu</button>
+            <button onclick="setBookingFilter('Dikonfirmasi')" data-status-filter="Dikonfirmasi" class="booking-filter-btn px-3.5 py-2 rounded-xl text-xs font-extrabold bg-obsidian text-zinc-400 hover:text-white transition">Dikonfirmasi</button>
+            <button onclick="setBookingFilter('Selesai')" data-status-filter="Selesai" class="booking-filter-btn px-3.5 py-2 rounded-xl text-xs font-extrabold bg-obsidian text-zinc-400 hover:text-white transition">Selesai</button>
+            <button onclick="setBookingFilter('Dibatalkan')" data-status-filter="Dibatalkan" class="booking-filter-btn px-3.5 py-2 rounded-xl text-xs font-extrabold bg-obsidian text-zinc-400 hover:text-white transition">Dibatalkan</button>
+          </div>
+
+          <div class="relative w-full md:w-72">
+            <input type="text" id="admin-booking-search" oninput="renderAdminBookingsTable()" placeholder="Cari nama atau nomor WA..." class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-obsidian border border-zinc-800 focus:border-amber-500 focus:outline-none text-white text-xs font-semibold" />
+            <svg class="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </div>
+        </div>
+
+        <!-- Full Bookings Table -->
+        <div class="bg-charcoal border border-zinc-800 rounded-3xl overflow-hidden shadow-xl">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[920px]">
+              <thead>
+                <tr class="bg-obsidian/80 border-b border-zinc-800 text-[11px] font-extrabold uppercase tracking-wider text-zinc-400">
+                  <th class="py-4 px-5">Nama Pelanggan</th>
+                  <th class="py-4 px-4">No WA</th>
+                  <th class="py-4 px-4">Paket</th>
+                  <th class="py-4 px-4">Harga</th>
+                  <th class="py-4 px-4">Tanggal & Jam</th>
+                  <th class="py-4 px-4">Status</th>
+                  <th class="py-4 px-5 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="admin-bookings-tbody" class="divide-y divide-zinc-800/70 text-sm">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <!-- TAB 3: KELOLA LAYANAN (TAMBAH, UBAH HARGA, HAPUS)               -->
+      <!-- =============================================================== -->
+      <section id="admin-tab-layanan" class="admin-tab-panel hidden space-y-6 animate-fade-in">
+        <div class="grid lg:grid-cols-12 gap-6 items-start">
+          
+          <!-- Form Tambah Layanan Baru (4 Cols) -->
+          <div class="lg:col-span-4 bg-charcoal border border-zinc-800 rounded-3xl p-6">
+            <h2 class="font-display text-2xl font-bold uppercase text-white mb-1">Tambah Layanan Baru</h2>
+            <p class="text-xs text-zinc-400 mb-5">Layanan baru akan langsung tampil di halaman pelanggan.</p>
+
+            <form id="add-service-form" class="space-y-4">
+              <div>
+                <label class="block text-xs font-extrabold uppercase tracking-wider text-zinc-400 mb-1.5">Nama Paket Layanan *</label>
+                <input type="text" id="new-service-name" required placeholder="Contoh: Hair Coloring + Cut" class="w-full px-4 py-3 rounded-xl bg-obsidian border border-zinc-800 focus:border-amber-500 focus:outline-none text-white text-sm font-semibold" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-extrabold uppercase tracking-wider text-zinc-400 mb-1.5">Harga (Rp) *</label>
+                <input type="number" id="new-service-price" required min="1000" step="500" placeholder="Contoh: 75000" class="w-full px-4 py-3 rounded-xl bg-obsidian border border-zinc-800 focus:border-amber-500 focus:outline-none text-white text-sm font-semibold" />
+              </div>
+
+              <div>
+                <label class="block text-xs font-extrabold uppercase tracking-wider text-zinc-400 mb-1.5">Deskripsi Singkat *</label>
+                <input type="text" id="new-service-desc" required placeholder="Contoh: Potong rambut + cat warna premium" class="w-full px-4 py-3 rounded-xl bg-obsidian border border-zinc-800 focus:border-amber-500 focus:outline-none text-white text-sm" />
+              </div>
+
+              <div class="flex items-center gap-2.5 pt-1">
+                <input type="checkbox" id="new-service-popular" class="w-4 h-4 accent-amber-500 rounded cursor-pointer" />
+                <label for="new-service-popular" class="text-xs font-bold text-zinc-300 cursor-pointer">Tampilkan Badge Favorit</label>
+              </div>
+
+              <button type="submit" class="w-full py-3.5 px-5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-extrabold text-sm uppercase tracking-wider transition shadow-lg shadow-amber-500/20">
+                + Tambah Paket Layanan
+              </button>
+            </form>
+          </div>
+
+          <!-- Daftar Layanan Aktif (8 Cols) -->
+          <div class="lg:col-span-8 bg-charcoal border border-zinc-800 rounded-3xl p-6">
+            <div class="flex items-center justify-between mb-5">
+              <div>
+                <h2 class="font-display text-2xl font-bold uppercase text-white">Daftar Paket Layanan Aktif</h2>
+                <p class="text-xs text-zinc-400">Ubah harga atau hapus paket layanan yang tersedia.</p>
+              </div>
+              <span id="admin-services-count" class="px-3 py-1 rounded-full bg-amber-500/15 text-amber-400 text-xs font-extrabold">4 Paket</span>
+            </div>
+
+            <div id="admin-services-list" class="grid sm:grid-cols-2 gap-4">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- =============================================================== -->
+      <!-- TAB 4: LAPORAN PENDAPATAN (STATUS SELESAI)                      -->
+      <!-- =============================================================== -->
+      <section id="admin-tab-laporan" class="admin-tab-panel hidden space-y-6 animate-fade-in">
+        
+        <!-- Big Revenue Highlight Card -->
+        <div class="bg-gradient-to-r from-charcoal via-zinc-900 to-charcoal border border-amber-500/40 rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div>
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-extrabold uppercase tracking-wider mb-3">
+              Status: Selesai
+            </span>
+            <h2 class="font-display text-2xl sm:text-3xl font-bold uppercase text-white">Total Pendapatan Bersih</h2>
+            <p class="text-zinc-400 text-xs sm:text-sm mt-1">Otomatis terakumulasi setiap kali admin menandai booking sebagai <strong class="text-emerald-400">Selesai</strong>.</p>
+          </div>
+          <div class="bg-obsidian/90 border border-zinc-800 rounded-2xl px-6 py-4 text-left md:text-right w-full md:w-auto">
+            <span class="text-xs font-bold uppercase tracking-wider text-zinc-500 block">Total Pemasukan</span>
+            <span id="report-total-revenue" class="font-display text-4xl sm:text-5xl font-bold text-amber-400">Rp 0</span>
+            <span id="report-completed-count" class="text-xs text-emerald-400 font-bold block mt-1">0 Transaksi Selesai</span>
+          </div>
+        </div>
+
+        <!-- Breakdown per Paket -->
+        <div class="bg-charcoal border border-zinc-800 rounded-3xl p-6">
+          <h3 class="font-display text-xl font-bold uppercase text-white mb-4">Rincian Pendapatan per Paket</h3>
+          <div id="report-package-breakdown" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Riwayat Transaksi Selesai -->
+        <div class="bg-charcoal border border-zinc-800 rounded-3xl overflow-hidden">
+          <div class="p-6 border-b border-zinc-800">
+            <h3 class="font-display text-xl font-bold uppercase text-white">Riwayat Transaksi Selesai</h3>
+            <p class="text-xs text-zinc-400">Daftar seluruh pelanggan yang telah selesai dilayani.</p>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[650px]">
+              <thead>
+                <tr class="bg-obsidian/80 border-b border-zinc-800 text-[11px] font-extrabold uppercase tracking-wider text-zinc-400">
+                  <th class="py-3.5 px-5">Tanggal & Jam</th>
+                  <th class="py-3.5 px-4">Pelanggan</th>
+                  <th class="py-3.5 px-4">No WA</th>
+                  <th class="py-3.5 px-4">Paket Layanan</th>
+                  <th class="py-3.5 px-5 text-right">Pendapatan</th>
+                </tr>
+              </thead>
+              <tbody id="report-transactions-tbody" class="divide-y divide-zinc-800/70 text-sm">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+
+  <!-- ===================================================================== -->
+  <!-- JAVASCRIPT LOGIC: STATE, LOCALSTORAGE SYNC, NAVIGATION & RENDERING    -->
+  <!-- ===================================================================== -->
+  <script>
+    /**
+     * CUTZ - Barbershop Management System
+     * Single-file SPA logic with full localStorage persistence & cross-tab real-time sync.
+     */
+
+    // =========================================================================
+    // 1. STORAGE KEYS & DEFAULT DATA
+    // =========================================================================
+    const STORAGE_KEYS = {
+      SERVICES: 'cutz_services_v1',
+      BOOKINGS: 'cutz_bookings_v1',
+      INITIALIZED: 'cutz_initialized_v1',
+      ADMIN_SESSION: 'cutz_admin_logged_in_v1'
+    };
+
+    // 4 Paket Layanan Wajib Sesuai Spesifikasi
+    const DEFAULT_SERVICES = [
+      {
+        id: 'srv-1',
+        name: 'Potong Rambut Biasa',
+        price: 25000,
+        description: 'Potong rambut presisi sesuai gaya pilihan + styling pomade premium.',
+        popular: false
+      },
+      {
+        id: 'srv-2',
+        name: 'Potong + Cuci Rambut',
+        price: 35000,
+        description: 'Potong rambut rapi + keramas menyegarkan dengan shampo khusus pria.',
+        popular: false
+      },
+      {
+        id: 'srv-3',
+        name: 'Potong + Cukur Jenggot',
+        price: 40000,
+        description: 'Potong rambut detail + rapikan kumis & jenggot dengan handuk hangat.',
+        popular: false
+      },
+      {
+        id: 'srv-4',
+        name: 'Paket Sultan',
+        price: 60000,
+        description: 'Full service: Potong + Cuci + Cukur Jenggot + Pijat Kepala + Hair Tonic.',
+        popular: true
+      }
+    ];
+
+    // 6 Gaya Rambut Galeri
+    const HAIRSTYLE_GALLERY = [
+      {
+        name: 'Two Block Fade',
+        tag: 'Terpopuler 2026',
+        desc: 'Sisi samping tipis rapi dengan bagian atas bertekstur modern ala Korea.',
+        image: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&w=600&q=80'
+      },
+      {
+        name: 'Low Taper Fade',
+        tag: 'Clean & Rapi',
+        desc: 'Gradasi halus di area jambang dan tengkuk, cocok untuk kuliah maupun kerja.',
+        image: 'https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=600&q=80'
+      },
+      {
+        name: 'French Crop',
+        tag: 'Anti Ribet',
+        desc: 'Poni depan pendek bertekstur dengan fade tinggi, maskulin dan mudah diatur.',
+        image: 'https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=600&q=80'
+      },
+      {
+        name: 'Classic Pompadour',
+        tag: 'Gentleman Look',
+        desc: 'Volume atas elegan dengan belahan samping tajam untuk tampilan berkelas.',
+        image: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=600&q=80'
+      },
+      {
+        name: 'Burst Fade Mullet',
+        tag: 'Trendy & Edgy',
+        desc: 'Fade melingkar di sekitar telinga dengan bagian belakang tetap bervolume.',
+        image: 'https://images.unsplash.com/photo-1593702288056-7927b442d0fa?auto=format&fit=crop&w=600&q=80'
+      },
+      {
+        name: 'Buzz Cut + Line Up',
+        tag: 'Maskulin Tegas',
+        desc: 'Potongan cepak presisi dengan garis hairline super tajam dan bersih.',
+        image: 'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?auto=format&fit=crop&w=600&q=80'
+      }
+    ];
+
+    // Global State
+    let currentBookingFilter = 'Semua';
+    let lastCheckedWa = '';
+
+    // =========================================================================
+    // 2. HELPER UTILITIES (FORMATTING, DATE, STORAGE)
+    // =========================================================================
+    function formatRupiah(amount) {
+      return 'Rp ' + Number(amount || 0).toLocaleString('id-ID');
+    }
+
+    function getTodayISO() {
+      const now = new Date();
+      const offset = now.getTimezoneOffset();
+      const localDate = new Date(now.getTime() - offset * 60 * 1000);
+      return localDate.toISOString().split('T')[0];
+    }
+
+    function formatDateIndo(isoDate) {
+      if (!isoDate) return '-';
+      const parts = isoDate.split('-');
+      if (parts.length !== 3) return isoDate;
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      return `${parts[2]} ${months[parseInt(parts[1], 10) - 1]} ${parts[0]}`;
+    }
+
+    function normalizePhone(phone) {
+      let digits = String(phone || '').replace(/\D/g, '');
+      if (digits.startsWith('62')) digits = '0' + digits.slice(2);
+      return digits;
+    }
+
+    function toWhatsAppInternational(phone) {
+      let digits = String(phone || '').replace(/\D/g, '');
+      if (digits.startsWith('0')) return '62' + digits.slice(1);
+      if (!digits.startsWith('62')) return '62' + digits;
+      return digits;
+    }
+
+    function escapeHTML(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function getServices() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.SERVICES);
+        if (!raw) return [...DEFAULT_SERVICES];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) && parsed.length > 0 ? parsed : [...DEFAULT_SERVICES];
+      } catch (e) {
+        return [...DEFAULT_SERVICES];
+      }
+    }
+
+    function saveServices(services) {
+      localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(services));
+      syncAllViews();
+    }
+
+    function getBookings() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEYS.BOOKINGS);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveBookings(bookings) {
+      localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(bookings));
+      syncAllViews();
+    }
+
+    function initStorageData() {
+      if (!localStorage.getItem(STORAGE_KEYS.INITIALIZED)) {
+        localStorage.setItem(STORAGE_KEYS.SERVICES, JSON.stringify(DEFAULT_SERVICES));
+        
+        const today = getTodayISO();
+        const seedBookings = [
+          {
+            id: 'BK-' + Date.now().toString().slice(-5),
+            name: 'Dimas Anggara',
+            wa: '081234567890',
+            serviceId: 'srv-4',
+            packageName: 'Paket Sultan',
+            price: 60000,
+            date: today,
+            time: '14:00',
+            status: 'Menunggu',
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: 'BK-' + (Date.now() + 1).toString().slice(-5),
+            name: 'Fajar Ramadhan',
+            wa: '085712349876',
+            serviceId: 'srv-2',
+            packageName: 'Potong + Cuci Rambut',
+            price: 35000,
+            date: today,
+            time: '11:00',
+            status: 'Dikonfirmasi',
+            createdAt: new Date().toISOString()
+          },
+          {
+            id: 'BK-' + (Date.now() + 2).toString().slice(-5),
+            name: 'Reza Mahendra',
+            wa: '082199887766',
+            serviceId: 'srv-3',
+            packageName: 'Potong + Cukur Jenggot',
+            price: 40000,
+            date: today,
+            time: '09:00',
+            status: 'Selesai',
+            createdAt: new Date().toISOString()
+          }
+        ];
+        localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(seedBookings));
+        localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
+      }
+    }
+
+    // =========================================================================
+    // 3. CUSTOM TOAST & MODAL SYSTEM (ZERO NATIVE ALERT/CONFIRM)
+    // =========================================================================
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      const styles = {
+        success: 'bg-charcoal border-emerald-500/50 text-white shadow-emerald-950/50',
+        warning: 'bg-charcoal border-amber-500/50 text-white shadow-amber-950/50',
+        danger: 'bg-charcoal border-red-500/50 text-white shadow-red-950/50',
+        info: 'bg-charcoal border-sky-500/50 text-white shadow-sky-950/50'
+      };
+
+      const badges = {
+        success: '<span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0"></span>',
+        warning: '<span class="w-2.5 h-2.5 rounded-full bg-amber-400 shrink-0"></span>',
+        danger: '<span class="w-2.5 h-2.5 rounded-full bg-red-400 shrink-0"></span>',
+        info: '<span class="w-2.5 h-2.5 rounded-full bg-sky-400 shrink-0"></span>'
+      };
+
+      toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3.5 rounded-2xl border shadow-2xl backdrop-blur-md animate-slide-up ${styles[type] || styles.success}`;
+      toast.innerHTML = `
+        ${badges[type] || badges.success}
+        <p class="text-xs sm:text-sm font-bold leading-snug flex-1">${escapeHTML(message)}</p>
+      `;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(-10px)';
+        toast.style.transition = 'all 0.25s ease';
+        setTimeout(() => toast.remove(), 260);
+      }, 3200);
+    }
+
+    function showConfirmModal({ title, subtitle, message, confirmText = 'Ya, Hapus', isDanger = true, onConfirm }) {
+      const modal = document.getElementById('confirm-modal');
+      document.getElementById('confirm-title').textContent = title;
+      document.getElementById('confirm-subtitle').textContent = subtitle || 'Konfirmasi tindakan';
+      document.getElementById('confirm-message').textContent = message;
+
+      const okBtn = document.getElementById('confirm-ok-btn');
+      const cancelBtn = document.getElementById('confirm-cancel-btn');
+      okBtn.textContent = confirmText;
+
+      if (isDanger) {
+        okBtn.className = 'px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-bold shadow-lg shadow-red-600/20 transition';
+      } else {
+        okBtn.className = 'px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-sm font-extrabold shadow-lg shadow-amber-500/20 transition';
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+
+      const cleanup = () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        okBtn.onclick = null;
+        cancelBtn.onclick = null;
+      };
+
+      cancelBtn.onclick = cleanup;
+      okBtn.onclick = () => {
+        cleanup();
+        if (typeof onConfirm === 'function') onConfirm();
+      };
+    }
+
+    function openBookingSuccessModal(booking) {
+      const modal = document.getElementById('booking-success-modal');
+      const details = document.getElementById('booking-ticket-details');
+      details.innerHTML = `
+        <div class="flex justify-between items-center pb-2 border-b border-zinc-800">
+          <span class="text-zinc-400 text-xs">Kode Booking</span>
+          <span class="font-mono font-extrabold text-amber-400">${escapeHTML(booking.id)}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-zinc-400 text-xs">Nama</span>
+          <span class="font-bold text-white">${escapeHTML(booking.name)}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-zinc-400 text-xs">No. WhatsApp</span>
+          <span class="font-bold text-zinc-200">${escapeHTML(booking.wa)}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-zinc-400 text-xs">Paket</span>
+          <span class="font-bold text-white">${escapeHTML(booking.packageName)}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-zinc-400 text-xs">Jadwal</span>
+          <span class="font-bold text-amber-400">${formatDateIndo(booking.date)} &bull; ${escapeHTML(booking.time)} WIB</span>
+        </div>
+        <div class="flex justify-between items-center pt-2 border-t border-zinc-800">
+          <span class="text-zinc-400 text-xs">Total Biaya</span>
+          <span class="font-display text-xl font-bold text-white">${formatRupiah(booking.price)}</span>
+        </div>
+        <div class="flex justify-between items-center">
+          <span class="text-zinc-400 text-xs">Status</span>
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-500/15 text-amber-400 border border-amber-500/30">${escapeHTML(booking.status)}</span>
+        </div>
+      `;
+
+      modal.dataset.wa = booking.wa;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeBookingSuccessModal(goToCheck) {
+      const modal = document.getElementById('booking-success-modal');
+      const wa = modal.dataset.wa || '';
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+
+      if (goToCheck && wa) {
+        const checkInput = document.getElementById('check-wa-input');
+        checkInput.value = wa;
+        performCheckBooking(wa);
+        document.getElementById('cek-booking').scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    // =========================================================================
+    // 4. SPA NAVIGATION (CUSTOMER <-> ADMIN LOGIN <-> ADMIN DASHBOARD)
+    // =========================================================================
+    function openAdminPortal() {
+      const isLoggedIn = sessionStorage.getItem(STORAGE_KEYS.ADMIN_SESSION) === 'true';
+      document.getElementById('customer-view').classList.add('hidden');
+      
+      if (isLoggedIn) {
+        document.getElementById('admin-login-view').classList.add('hidden');
+        document.getElementById('admin-dashboard-view').classList.remove('hidden');
+        syncAllViews();
+      } else {
+        document.getElementById('admin-dashboard-view').classList.add('hidden');
+        document.getElementById('admin-login-view').classList.remove('hidden');
+        document.getElementById('admin-login-error').classList.add('hidden');
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function backToCustomerView() {
+      document.getElementById('admin-login-view').classList.add('hidden');
+      document.getElementById('admin-dashboard-view').classList.add('hidden');
+      document.getElementById('customer-view').classList.remove('hidden');
+      syncAllViews();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function logoutAdmin() {
+      sessionStorage.removeItem(STORAGE_KEYS.ADMIN_SESSION);
+      showToast('Anda telah keluar dari Panel Admin.', 'info');
+      backToCustomerView();
+    }
+
+    function toggleMobileMenu() {
+      const menu = document.getElementById('mobile-menu');
+      menu.classList.toggle('hidden');
+    }
+
+    function toggleAdminSidebar() {
+      const sidebar = document.getElementById('admin-sidebar');
+      const backdrop = document.getElementById('admin-sidebar-backdrop');
+      const isClosed = sidebar.classList.contains('-translate-x-full');
+      if (isClosed) {
+        sidebar.classList.remove('-translate-x-full');
+        backdrop.classList.remove('hidden');
+      } else {
+        sidebar.classList.add('-translate-x-full');
+        backdrop.classList.add('hidden');
+      }
+    }
+
+    function switchAdminTab(tabName) {
+      // Update sidebar active state
+      document.querySelectorAll('.admin-nav-btn').forEach(btn => {
+        if (btn.dataset.adminTab === tabName) {
+          btn.className = 'admin-nav-btn w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-extrabold transition text-left bg-amber-500 text-black shadow-lg shadow-amber-500/20';
+        } else {
+          btn.className = 'admin-nav-btn w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-bold transition text-left text-zinc-400 hover:bg-zinc-800/80 hover:text-white';
+        }
+      });
+
+      // Hide all panels, show selected
+      document.querySelectorAll('.admin-tab-panel').forEach(panel => panel.classList.add('hidden'));
+      const targetPanel = document.getElementById(`admin-tab-${tabName}`);
+      if (targetPanel) targetPanel.classList.remove('hidden');
+
+      // Update Page Header Titles
+      const meta = {
+        dashboard: {
+          title: 'Dashboard Ringkasan',
+          subtitle: 'Pantau performa, jadwal booking, dan pendapatan CUTZ Barbershop secara real-time.'
+        },
+        booking: {
+          title: 'Kelola Daftar Booking',
+          subtitle: 'Konfirmasi, selesaikan, batalkan, atau hubungi pelanggan langsung via WhatsApp.'
+        },
+        layanan: {
+          title: 'Kelola Paket Layanan',
+          subtitle: 'Tambah paket baru, perbarui harga, atau hapus layanan yang tampil ke pelanggan.'
+        },
+        laporan: {
+          title: 'Laporan Pendapatan',
+          subtitle: 'Rekapitulasi pemasukan otomatis dari seluruh booking berstatus Selesai.'
+        }
+      };
+
+      if (meta[tabName]) {
+        document.getElementById('admin-page-title').textContent = meta[tabName].title;
+        document.getElementById('admin-page-subtitle').textContent = meta[tabName].subtitle;
+      }
+
+      // Close sidebar on mobile after selection
+      const sidebar = document.getElementById('admin-sidebar');
+      if (!sidebar.classList.contains('-translate-x-full') && window.innerWidth < 1024) {
+        toggleAdminSidebar();
+      }
+
+      syncAllViews();
+    }
+
+    // =========================================================================
+    // 5. CUSTOMER VIEW RENDERING & INTERACTIONS
+    // =========================================================================
+    function renderCustomerServices() {
+      const services = getServices();
+      const grid = document.getElementById('customer-services-grid');
+      const select = document.getElementById('book-package');
+      const currentSelectedId = select.value;
+
+      // Render Cards
+      grid.innerHTML = services.map((srv, idx) => {
+        const isPopular = Boolean(srv.popular);
+        return `
+          <div class="relative rounded-3xl p-6 flex flex-col justify-between transition duration-300 hover:-translate-y-1.5 ${
+            isPopular 
+              ? 'bg-gradient-to-b from-zinc-900 via-charcoal to-obsidian border-2 border-amber-500 shadow-2xl shadow-amber-500/15' 
+              : 'bg-charcoal border border-zinc-800 hover:border-amber-500/40'
+          }">
+            ${isPopular ? `
+              <div class="absolute -top-3.5 right-5 px-3.5 py-1 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-[11px] font-extrabold uppercase tracking-wider shadow-md">
+                ★ Paling Laris
+              </div>
+            ` : ''}
+
+            <div>
+              <div class="flex items-center justify-between mb-4">
+                <span class="text-xs font-extrabold uppercase tracking-widest text-zinc-500">Paket 0${idx + 1}</span>
+                <div class="w-9 h-9 rounded-xl ${isPopular ? 'bg-amber-500 text-black' : 'bg-zinc-900 text-amber-400 border border-zinc-800'} flex items-center justify-center">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+                </div>
+              </div>
+
+              <h3 class="text-xl font-extrabold text-white mb-2">${escapeHTML(srv.name)}</h3>
+              <p class="font-display text-3xl sm:text-4xl font-bold text-amber-400 mb-3">${formatRupiah(srv.price)}</p>
+              <p class="text-zinc-400 text-xs sm:text-sm leading-relaxed mb-6">${escapeHTML(srv.description)}</p>
+            </div>
+
+            <button onclick="selectPackageForBooking('${escapeHTML(srv.id)}')" class="w-full py-3.5 px-4 rounded-xl font-extrabold text-sm uppercase tracking-wider transition flex items-center justify-center gap-2 ${
+              isPopular
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-black shadow-lg shadow-amber-500/20'
+                : 'bg-zinc-900 hover:bg-amber-500 text-white hover:text-black border border-zinc-700 hover:border-amber-500'
+            }">
+              <span>Pilih Paket</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        `;
+      }).join('');
+
+      // Populate Booking Form Select
+      select.innerHTML = services.map(srv => `
+        <option value="${escapeHTML(srv.id)}" data-price="${srv.price}">
+          ${escapeHTML(srv.name)} — ${formatRupiah(srv.price)}
+        </option>
+      `).join('');
+
+      if (currentSelectedId && services.some(s => s.id === currentSelectedId)) {
+        select.value = currentSelectedId;
+      }
+      updateBookingPricePreview();
+    }
+
+    function updateBookingPricePreview() {
+      const select = document.getElementById('book-package');
+      const preview = document.getElementById('book-price-preview');
+      const selectedOption = select.options[select.selectedIndex];
+      const price = selectedOption ? Number(selectedOption.dataset.price || 0) : 0;
+      preview.textContent = formatRupiah(price);
+    }
+
+    function selectPackageForBooking(serviceId) {
+      const select = document.getElementById('book-package');
+      select.value = serviceId;
+      updateBookingPricePreview();
+
+      const bookingSection = document.getElementById('booking');
+      bookingSection.scrollIntoView({ behavior: 'smooth' });
+      setTimeout(() => {
+        document.getElementById('book-name').focus();
+      }, 450);
+
+      const selectedText = select.options[select.selectedIndex]?.text || 'Paket dipilih';
+      showToast(`Dipilih: ${selectedText}`, 'warning');
+    }
+
+    function renderHairstyleGallery() {
+      const grid = document.getElementById('hairstyle-gallery-grid');
+      grid.innerHTML = HAIRSTYLE_GALLERY.map(item => `
+        <div class="group bg-charcoal border border-zinc-800 hover:border-amber-500/50 rounded-3xl overflow-hidden transition duration-300 flex flex-col">
+          <div class="relative h-60 bg-zinc-900 overflow-hidden">
+            <img 
+              src="${item.image}" 
+              alt="${escapeHTML(item.name)}"
+              onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');"
+              class="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+            />
+            <!-- Fallback SVG Illustration -->
+            <div class="hidden w-full h-full bg-gradient-to-br from-zinc-900 via-obsidian to-amber-950/30 flex flex-col items-center justify-center p-6 text-center">
+              <svg class="w-12 h-12 text-amber-400 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+              <span class="font-display text-xl font-bold text-white uppercase">${escapeHTML(item.name)}</span>
+            </div>
+            <div class="absolute inset-0 bg-gradient-to-t from-charcoal via-transparent to-transparent"></div>
+            <span class="absolute top-4 left-4 px-3 py-1 rounded-full bg-black/75 backdrop-blur-md border border-amber-500/40 text-amber-400 text-[11px] font-extrabold uppercase tracking-wider">
+              ${escapeHTML(item.tag)}
+            </span>
+          </div>
+
+          <div class="p-6 flex-1 flex flex-col justify-between">
+            <div>
+              <h3 class="text-lg font-extrabold text-white mb-1.5 group-hover:text-amber-400 transition">${escapeHTML(item.name)}</h3>
+              <p class="text-zinc-400 text-xs sm:text-sm leading-relaxed mb-5">${escapeHTML(item.desc)}</p>
+            </div>
+            <a href="#booking" onclick="showToast('Gaya ${escapeHTML(item.name)} siap dipesan! Silakan isi form booking.', 'info')" class="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-amber-400 hover:text-amber-300 transition">
+              <span>Booking Gaya Ini</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+            </a>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function getStatusBadgeHTML(status) {
+      const map = {
+        'Menunggu': 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+        'Dikonfirmasi': 'bg-sky-500/15 text-sky-400 border-sky-500/30',
+        'Selesai': 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+        'Dibatalkan': 'bg-red-500/15 text-red-400 border-red-500/30'
+      };
+      const cls = map[status] || 'bg-zinc-800 text-zinc-300 border-zinc-700';
+      return `<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold border ${cls}">${escapeHTML(status)}</span>`;
+    }
+
+    function performCheckBooking(waQuery) {
+      lastCheckedWa = waQuery;
+      const normalizedQuery = normalizePhone(waQuery);
+      const resultsContainer = document.getElementById('check-booking-results');
+
+      if (!normalizedQuery || normalizedQuery.length < 6) {
+        resultsContainer.innerHTML = `
+          <div class="p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-bold text-center">
+            Masukkan nomor WhatsApp yang valid (minimal 6 digit).
+          </div>
+        `;
+        return;
+      }
+
+      const bookings = getBookings();
+      const matches = bookings
+        .filter(b => normalizePhone(b.wa) === normalizedQuery)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      if (matches.length === 0) {
+        resultsContainer.innerHTML = `
+          <div class="p-6 rounded-2xl bg-obsidian border border-zinc-800 text-center">
+            <p class="text-white font-bold text-sm mb-1">Data Booking Tidak Ditemukan</p>
+            <p class="text-zinc-500 text-xs">Tidak ada riwayat booking untuk nomor <strong class="text-zinc-300">${escapeHTML(waQuery)}</strong>.</p>
+          </div>
+        `;
+        return;
+      }
+
+      resultsContainer.innerHTML = matches.map(b => `
+        <div class="p-4 rounded-2xl bg-obsidian border border-zinc-800 hover:border-amber-500/40 transition space-y-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-mono text-xs font-bold text-zinc-500">${escapeHTML(b.id)}</span>
+            ${getStatusBadgeHTML(b.status)}
+          </div>
+          <div>
+            <p class="text-white font-extrabold text-sm">${escapeHTML(b.name)}</p>
+            <p class="text-amber-400 font-bold text-xs mt-0.5">${escapeHTML(b.packageName)} (${formatRupiah(b.price)})</p>
+          </div>
+          <div class="flex items-center justify-between pt-2 border-t border-zinc-800/80 text-xs text-zinc-400">
+            <span>📅 ${formatDateIndo(b.date)}</span>
+            <span>⏰ ${escapeHTML(b.time)} WIB</span>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // =========================================================================
+    // 6. ADMIN VIEW RENDERING & ACTIONS
+    // =========================================================================
+    function renderAdminDashboard() {
+      const bookings = getBookings();
+      const today = getTodayISO();
+
+      // 1. Total Booking Hari Ini (tidak termasuk yang dibatalkan)
+      const todayBookingsCount = bookings.filter(b => b.date === today && b.status !== 'Dibatalkan').length;
+
+      // 2. Total Pendapatan (dari booking status 'Selesai')
+      const completedBookings = bookings.filter(b => b.status === 'Selesai');
+      const totalRevenue = completedBookings.reduce((sum, b) => sum + Number(b.price || 0), 0);
+
+      // 3. Booking Menunggu
+      const pendingBookingsCount = bookings.filter(b => b.status === 'Menunggu').length;
+
+      // 4. Total Pelanggan (unique by normalized WA)
+      const uniqueCustomers = new Set(bookings.map(b => normalizePhone(b.wa)).filter(Boolean)).size;
+
+      document.getElementById('kpi-today-bookings').textContent = todayBookingsCount;
+      document.getElementById('kpi-total-revenue').textContent = formatRupiah(totalRevenue);
+      document.getElementById('kpi-pending-bookings').textContent = pendingBookingsCount;
+      document.getElementById('kpi-total-customers').textContent = uniqueCustomers;
+      document.getElementById('sidebar-pending-badge').textContent = pendingBookingsCount;
+
+      // Recent Bookings Quick Table (Top 5)
+      const recentContainer = document.getElementById('dashboard-recent-bookings');
+      const recentList = [...bookings].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 5);
+
+      if (recentList.length === 0) {
+        recentContainer.innerHTML = `<p class="text-zinc-500 text-sm py-6 text-center">Belum ada data booking masuk.</p>`;
+        return;
+      }
+
+      recentContainer.innerHTML = `
+        <table class="w-full text-left border-collapse min-w-[720px]">
+          <thead>
+            <tr class="border-b border-zinc-800 text-[11px] font-extrabold uppercase tracking-wider text-zinc-500">
+              <th class="py-3 px-3">Pelanggan</th>
+              <th class="py-3 px-3">Paket</th>
+              <th class="py-3 px-3">Jadwal</th>
+              <th class="py-3 px-3">Status</th>
+              <th class="py-3 px-3 text-right">Aksi Cepat</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-zinc-800/70 text-sm">
+            ${recentList.map(b => `
+              <tr class="hover:bg-obsidian/50 transition">
+                <td class="py-3.5 px-3">
+                  <p class="font-bold text-white">${escapeHTML(b.name)}</p>
+                  <p class="text-xs text-zinc-500">${escapeHTML(b.wa)}</p>
+                </td>
+                <td class="py-3.5 px-3">
+                  <p class="font-semibold text-zinc-200">${escapeHTML(b.packageName)}</p>
+                  <p class="text-xs font-bold text-amber-400">${formatRupiah(b.price)}</p>
+                </td>
+                <td class="py-3.5 px-3 text-xs text-zinc-300 font-semibold">
+                  ${formatDateIndo(b.date)} &bull; ${escapeHTML(b.time)}
+                </td>
+                <td class="py-3.5 px-3">${getStatusBadgeHTML(b.status)}</td>
+                <td class="py-3.5 px-3 text-right">
+                  <div class="inline-flex items-center gap-1.5">
+                    ${b.status === 'Menunggu' ? `
+                      <button onclick="updateBookingStatus('${b.id}', 'Dikonfirmasi')" class="px-2.5 py-1.5 rounded-lg bg-sky-500/15 hover:bg-sky-500 text-sky-400 hover:text-black text-xs font-extrabold transition">Konfirmasi</button>
+                    ` : ''}
+                    ${b.status !== 'Selesai' && b.status !== 'Dibatalkan' ? `
+                      <button onclick="updateBookingStatus('${b.id}', 'Selesai')" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500 text-emerald-400 hover:text-black text-xs font-extrabold transition">Selesai</button>
+                    ` : ''}
+                    <a href="${buildWhatsAppLink(b)}" target="_blank" rel="noopener" class="px-2.5 py-1.5 rounded-lg bg-green-600/20 hover:bg-green-600 text-green-400 hover:text-white text-xs font-extrabold transition">Chat WA</a>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function setBookingFilter(status) {
+      currentBookingFilter = status;
+      document.querySelectorAll('.booking-filter-btn').forEach(btn => {
+        if (btn.dataset.statusFilter === status) {
+          btn.className = 'booking-filter-btn px-3.5 py-2 rounded-xl text-xs font-extrabold bg-amber-500 text-black transition';
+        } else {
+          btn.className = 'booking-filter-btn px-3.5 py-2 rounded-xl text-xs font-extrabold bg-obsidian text-zinc-400 hover:text-white transition';
+        }
+      });
+      renderAdminBookingsTable();
+    }
+
+    function buildWhatsAppLink(booking) {
+      const intlPhone = toWhatsAppInternational(booking.wa);
+      const message = `Halo Kak *${booking.name}*, kami dari *CUTZ Barbershop*.\n\nInformasi Booking Anda:\n- Kode: ${booking.id}\n- Paket: ${booking.packageName} (${formatRupiah(booking.price)})\n- Jadwal: ${formatDateIndo(booking.date)} pukul ${booking.time} WIB\n- Status: *${booking.status}*\n\nTerima kasih sudah mempercayakan gaya rambut Anda di CUTZ!`;
+      return `https://wa.me/${intlPhone}?text=${encodeURIComponent(message)}`;
+    }
+
+    function renderAdminBookingsTable() {
+      const bookings = getBookings();
+      const searchQuery = (document.getElementById('admin-booking-search')?.value || '').toLowerCase().trim();
+      const tbody = document.getElementById('admin-bookings-tbody');
+
+      const filtered = bookings
+        .filter(b => {
+          const matchStatus = currentBookingFilter === 'Semua' || b.status === currentBookingFilter;
+          const matchSearch = !searchQuery || 
+            b.name.toLowerCase().includes(searchQuery) || 
+            b.wa.toLowerCase().includes(searchQuery) ||
+            b.packageName.toLowerCase().includes(searchQuery);
+          return matchStatus && matchSearch;
+        })
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-12 text-center text-zinc-500 text-sm">
+              Tidak ada data booking yang sesuai dengan filter saat ini.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(b => `
+        <tr class="hover:bg-obsidian/50 transition">
+          <td class="py-4 px-5">
+            <p class="font-extrabold text-white">${escapeHTML(b.name)}</p>
+            <span class="font-mono text-[11px] text-zinc-500">${escapeHTML(b.id)}</span>
+          </td>
+          <td class="py-4 px-4 font-semibold text-zinc-300">${escapeHTML(b.wa)}</td>
+          <td class="py-4 px-4 font-bold text-white">${escapeHTML(b.packageName)}</td>
+          <td class="py-4 px-4 font-extrabold text-amber-400">${formatRupiah(b.price)}</td>
+          <td class="py-4 px-4">
+            <span class="text-white font-semibold block">${formatDateIndo(b.date)}</span>
+            <span class="text-xs text-amber-400 font-bold">${escapeHTML(b.time)} WIB</span>
+          </td>
+          <td class="py-4 px-4">${getStatusBadgeHTML(b.status)}</td>
+          <td class="py-4 px-5 text-right">
+            <div class="inline-flex flex-wrap items-center justify-end gap-1.5">
+              <button onclick="updateBookingStatus('${b.id}', 'Konfirmasi_Action')" class="px-2.5 py-1.5 rounded-lg bg-sky-500/15 hover:bg-sky-500 text-sky-400 hover:text-black text-xs font-extrabold transition" title="Konfirmasi Booking">
+                Konfirmasi
+              </button>
+              <button onclick="updateBookingStatus('${b.id}', 'Selesai')" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500 text-emerald-400 hover:text-black text-xs font-extrabold transition" title="Tandai Selesai & Tambah Pendapatan">
+                Selesai
+              </button>
+              <button onclick="updateBookingStatus('${b.id}', 'Dibatalkan')" class="px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500 text-amber-400 hover:text-black text-xs font-extrabold transition" title="Batalkan Booking">
+                Batal
+              </button>
+              <a href="${buildWhatsAppLink(b)}" target="_blank" rel="noopener" class="px-2.5 py-1.5 rounded-lg bg-green-600/20 hover:bg-green-600 text-green-400 hover:text-white text-xs font-extrabold transition" title="Hubungi Pelanggan via WhatsApp">
+                Chat WA
+              </a>
+              <button onclick="deleteBooking('${b.id}')" class="px-2.5 py-1.5 rounded-lg bg-red-500/15 hover:bg-red-600 text-red-400 hover:text-white text-xs font-extrabold transition" title="Hapus Permanen">
+                Hapus
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function updateBookingStatus(bookingId, newStatus) {
+      const normalizedStatus = newStatus === 'Konfirmasi_Action' ? 'Dikonfirmasi' : newStatus;
+      const bookings = getBookings();
+      const idx = bookings.findIndex(b => b.id === bookingId);
+      if (idx === -1) return;
+
+      bookings[idx].status = normalizedStatus;
+      saveBookings(bookings);
+
+      if (normalizedStatus === 'Selesai') {
+        showToast(`Booking ${bookings[idx].name} Selesai! Pendapatan +${formatRupiah(bookings[idx].price)}`, 'success');
+      } else if (normalizedStatus === 'Dikonfirmasi') {
+        showToast(`Booking ${bookings[idx].name} telah Dikonfirmasi.`, 'info');
+      } else if (normalizedStatus === 'Dibatalkan') {
+        showToast(`Booking ${bookings[idx].name} dibatalkan.`, 'warning');
+      }
+    }
+
+    function deleteBooking(bookingId) {
+      const bookings = getBookings();
+      const target = bookings.find(b => b.id === bookingId);
+      if (!target) return;
+
+      showConfirmModal({
+        title: 'Hapus Data Booking?',
+        subtitle: `Kode: ${target.id}`,
+        message: `Data booking atas nama "${target.name}" (${target.packageName}) akan dihapus permanen dari sistem.`,
+        confirmText: 'Ya, Hapus Data',
+        isDanger: true,
+        onConfirm: () => {
+          const updated = getBookings().filter(b => b.id !== bookingId);
+          saveBookings(updated);
+          showToast('Data booking berhasil dihapus.', 'danger');
+        }
+      });
+    }
+
+    // =========================================================================
+    // 7. ADMIN KELOLA LAYANAN (TAMBAH, UBAH HARGA, HAPUS)
+    // =========================================================================
+    function renderAdminServices() {
+      const services = getServices();
+      const container = document.getElementById('admin-services-list');
+      document.getElementById('admin-services-count').textContent = `${services.length} Paket`;
+
+      container.innerHTML = services.map(srv => `
+        <div class="bg-obsidian border ${srv.popular ? 'border-amber-500/50' : 'border-zinc-800'} rounded-2xl p-5 flex flex-col justify-between gap-4">
+          <div>
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <h3 class="font-extrabold text-white text-base">${escapeHTML(srv.name)}</h3>
+              ${srv.popular ? '<span class="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-400 text-[10px] font-extrabold uppercase shrink-0">Favorit</span>' : ''}
+            </div>
+            <p class="font-display text-2xl font-bold text-amber-400 mb-2">${formatRupiah(srv.price)}</p>
+            <p class="text-xs text-zinc-400 leading-relaxed">${escapeHTML(srv.description)}</p>
+          </div>
+
+          <div class="flex items-center gap-2 pt-3 border-t border-zinc-800/80">
+            <button onclick="openEditServiceModal('${escapeHTML(srv.id)}')" class="flex-1 py-2 px-3 rounded-xl bg-zinc-800 hover:bg-amber-500 text-zinc-200 hover:text-black text-xs font-extrabold transition">
+              Ubah Harga / Edit
+            </button>
+            <button onclick="deleteService('${escapeHTML(srv.id)}')" class="py-2 px-3 rounded-xl bg-red-500/15 hover:bg-red-600 text-red-400 hover:text-white text-xs font-extrabold transition">
+              Hapus
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openEditServiceModal(serviceId) {
+      const service = getServices().find(s => s.id === serviceId);
+      if (!service) return;
+
+      document.getElementById('edit-service-id').value = service.id;
+      document.getElementById('edit-service-name').value = service.name;
+      document.getElementById('edit-service-price').value = service.price;
+      document.getElementById('edit-service-desc').value = service.description;
+      document.getElementById('edit-service-popular').checked = Boolean(service.popular);
+
+      const modal = document.getElementById('edit-service-modal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeEditServiceModal() {
+      const modal = document.getElementById('edit-service-modal');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex');
+    }
+
+    function deleteService(serviceId) {
+      const services = getServices();
+      if (services.length <= 1) {
+        showToast('Minimal harus tersisa 1 paket layanan aktif!', 'warning');
+        return;
+      }
+
+      const target = services.find(s => s.id === serviceId);
+      if (!target) return;
+
+      showConfirmModal({
+        title: 'Hapus Paket Layanan?',
+        subtitle: target.name,
+        message: `Paket "${target.name}" (${formatRupiah(target.price)}) akan dihapus dari daftar harga pelanggan.`,
+        confirmText: 'Ya, Hapus Paket',
+        isDanger: true,
+        onConfirm: () => {
+          const updated = getServices().filter(s => s.id !== serviceId);
+          saveServices(updated);
+          showToast(`Paket "${target.name}" berhasil dihapus.`, 'danger');
+        }
+      });
+    }
+
+    // =========================================================================
+    // 8. ADMIN LAPORAN PENDAPATAN (STATUS SELESAI)
+    // =========================================================================
+    function renderAdminReports() {
+      const bookings = getBookings();
+      const services = getServices();
+      const completed = bookings
+        .filter(b => b.status === 'Selesai')
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      const totalRevenue = completed.reduce((sum, b) => sum + Number(b.price || 0), 0);
+
+      document.getElementById('report-total-revenue').textContent = formatRupiah(totalRevenue);
+      document.getElementById('report-completed-count').textContent = `${completed.length} Transaksi Selesai`;
+
+      // Breakdown per Package
+      const breakdownMap = {};
+      services.forEach(s => {
+        breakdownMap[s.name] = { count: 0, revenue: 0 };
+      });
+
+      completed.forEach(b => {
+        if (!breakdownMap[b.packageName]) {
+          breakdownMap[b.packageName] = { count: 0, revenue: 0 };
+        }
+        breakdownMap[b.packageName].count += 1;
+        breakdownMap[b.packageName].revenue += Number(b.price || 0);
+      });
+
+      const breakdownContainer = document.getElementById('report-package-breakdown');
+      breakdownContainer.innerHTML = Object.entries(breakdownMap).map(([pkgName, stats]) => `
+        <div class="bg-obsidian border border-zinc-800 rounded-2xl p-4">
+          <p class="text-xs font-extrabold text-zinc-300 truncate" title="${escapeHTML(pkgName)}">${escapeHTML(pkgName)}</p>
+          <p class="font-display text-2xl font-bold text-amber-400 mt-1">${formatRupiah(stats.revenue)}</p>
+          <p class="text-[11px] text-zinc-500 font-semibold mt-1">${stats.count}x selesai dikerjakan</p>
+        </div>
+      `).join('');
+
+      // Completed Transactions Table
+      const tbody = document.getElementById('report-transactions-tbody');
+      if (completed.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" class="py-10 text-center text-zinc-500 text-sm">
+              Belum ada transaksi berstatus <strong>Selesai</strong>. Tandai booking sebagai Selesai untuk mencatat pendapatan.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = completed.map(b => `
+        <tr class="hover:bg-obsidian/50 transition">
+          <td class="py-3.5 px-5 text-xs text-zinc-300 font-semibold">${formatDateIndo(b.date)} &bull; ${escapeHTML(b.time)}</td>
+          <td class="py-3.5 px-4 font-bold text-white">${escapeHTML(b.name)}</td>
+          <td class="py-3.5 px-4 text-xs text-zinc-400">${escapeHTML(b.wa)}</td>
+          <td class="py-3.5 px-4 text-zinc-200 font-semibold">${escapeHTML(b.packageName)}</td>
+          <td class="py-3.5 px-5 text-right font-extrabold text-emerald-400">+${formatRupiah(b.price)}</td>
+        </tr>
+      `).join('');
+    }
+
+    // =========================================================================
+    // 9. MASTER SYNC FUNCTION (KEEPS EVERYTHING IN SYNC)
+    // =========================================================================
+    function syncAllViews() {
+      renderCustomerServices();
+      renderAdminDashboard();
+      renderAdminBookingsTable();
+      renderAdminServices();
+      renderAdminReports();
+
+      if (lastCheckedWa) {
+        performCheckBooking(lastCheckedWa);
+      }
+    }
+
+    // =========================================================================
+    // 10. EVENT LISTENERS & INITIALIZATION
+    // =========================================================================
+    function toggleAdminPasswordVisibility() {
+      const input = document.getElementById('admin-password');
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function fillDemoAdmin() {
+      document.getElementById('admin-username').value = 'admin';
+      document.getElementById('admin-password').value = 'admin123';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Initialize localStorage seed if first run
+      initStorageData();
+
+      // Set default date in booking form to today
+      const today = getTodayISO();
+      const dateInput = document.getElementById('book-date');
+      dateInput.value = today;
+      dateInput.min = today;
+
+      // Display formatted current date in Admin Header
+      document.getElementById('admin-current-date').textContent = `Hari Ini: ${formatDateIndo(today)}`;
+
+      // Render initial UI
+      renderHairstyleGallery();
+      syncAllViews();
+
+      // Listen for package change to update price preview
+      document.getElementById('book-package').addEventListener('change', updateBookingPricePreview);
+
+      // Customer Booking Form Submission
+      document.getElementById('customer-booking-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('book-name').value.trim();
+        const wa = document.getElementById('book-wa').value.trim();
+        const serviceId = document.getElementById('book-package').value;
+        const date = document.getElementById('book-date').value;
+        const time = document.getElementById('book-time').value;
+
+        if (!name || !wa || !serviceId || !date || !time) {
+          showToast('Harap lengkapi semua kolom booking!', 'warning');
+          return;
+        }
+
+        const service = getServices().find(s => s.id === serviceId);
+        if (!service) {
+          showToast('Paket layanan tidak ditemukan.', 'danger');
+          return;
+        }
+
+        const newBooking = {
+          id: 'BK-' + Math.floor(10000 + Math.random() * 90000),
+          name,
+          wa,
+          serviceId: service.id,
+          packageName: service.name,
+          price: Number(service.price),
+          date,
+          time,
+          status: 'Menunggu', // Status default wajib Menunggu
+          createdAt: new Date().toISOString()
+        };
+
+        const bookings = getBookings();
+        bookings.push(newBooking);
+        saveBookings(bookings);
+
+        // Reset form fields
+        document.getElementById('book-name').value = '';
+        document.getElementById('book-wa').value = '';
+        document.getElementById('book-date').value = getTodayISO();
+
+        showToast('Booking berhasil disimpan! Status: Menunggu.', 'success');
+        openBookingSuccessModal(newBooking);
+      });
+
+      // Customer Check Booking Form
+      document.getElementById('check-booking-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const wa = document.getElementById('check-wa-input').value.trim();
+        performCheckBooking(wa);
+      });
+
+      // Admin Login Form
+      document.getElementById('admin-login-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const user = document.getElementById('admin-username').value.trim();
+        const pass = document.getElementById('admin-password').value.trim();
+        const errorBox = document.getElementById('admin-login-error');
+
+        if (user === 'admin' && pass === 'admin123') {
+          errorBox.classList.add('hidden');
+          sessionStorage.setItem(STORAGE_KEYS.ADMIN_SESSION, 'true');
+          document.getElementById('admin-login-view').classList.add('hidden');
+          document.getElementById('admin-dashboard-view').classList.remove('hidden');
+          switchAdminTab('dashboard');
+          showToast('Selamat datang kembali, Admin CUTZ!', 'success');
+        } else {
+          errorBox.classList.remove('hidden');
+          showToast('Login gagal! Periksa username & password.', 'danger');
+        }
+      });
+
+      // Admin Add Service Form
+      document.getElementById('add-service-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('new-service-name').value.trim();
+        const price = Number(document.getElementById('new-service-price').value);
+        const description = document.getElementById('new-service-desc').value.trim();
+        const popular = document.getElementById('new-service-popular').checked;
+
+        if (!name || price <= 0 || !description) {
+          showToast('Lengkapi data layanan dengan benar.', 'warning');
+          return;
+        }
+
+        const services = getServices();
+        services.push({
+          id: 'srv-' + Date.now(),
+          name,
+          price,
+          description,
+          popular
+        });
+        saveServices(services);
+
+        e.target.reset();
+        showToast(`Layanan "${name}" berhasil ditambahkan!`, 'success');
+      });
+
+      // Admin Edit Service Form
+      document.getElementById('edit-service-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const id = document.getElementById('edit-service-id').value;
+        const name = document.getElementById('edit-service-name').value.trim();
+        const price = Number(document.getElementById('edit-service-price').value);
+        const description = document.getElementById('edit-service-desc').value.trim();
+        const popular = document.getElementById('edit-service-popular').checked;
+
+        const services = getServices();
+        const idx = services.findIndex(s => s.id === id);
+        if (idx !== -1) {
+          services[idx] = { ...services[idx], name, price, description, popular };
+          saveServices(services);
+          closeEditServiceModal();
+          showToast(`Paket "${name}" berhasil diperbarui!`, 'success');
+        }
+      });
+
+      // Real-time Cross-Tab localStorage Synchronization (Customer tab -> Admin tab without refresh)
+      window.addEventListener('storage', (event) => {
+        if (event.key === STORAGE_KEYS.BOOKINGS || event.key === STORAGE_KEYS.SERVICES) {
+          syncAllViews();
+          if (event.key === STORAGE_KEYS.BOOKINGS) {
+            showToast('Data booking baru tersinkronisasi!', 'info');
+          }
+        }
+      });
+    });
+  </script>
+</body>
+</html>
